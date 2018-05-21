@@ -28,6 +28,7 @@ COS_NVIDIA_INSTALLER_CONTAINER="gcr.io/cos-cloud/cos-gpu-installer:latest"
 NVIDIA_INSTALL_DIR_HOST="/var/lib/nvidia"
 NVIDIA_INSTALL_DIR_CONTAINER="/usr/local/nvidia"
 ROOT_MOUNT_DIR="/root"
+SIGN_DRIVER="false"
 
 setup() {
   # Always use environment variable from metadata if provided.
@@ -45,6 +46,7 @@ setup() {
 
 main() {
   setup
+  docker-credential-gcr configure-docker
   docker run \
     --privileged \
     --net=host \

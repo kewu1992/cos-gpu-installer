@@ -33,6 +33,8 @@ NVIDIA_INSTALL_DIR_HOST="${NVIDIA_INSTALL_DIR_HOST:-/var/lib/nvidia}"
 NVIDIA_INSTALL_DIR_CONTAINER="${NVIDIA_INSTALL_DIR_CONTAINER:-/usr/local/nvidia}"
 ROOT_MOUNT_DIR="${ROOT_MOUNT_DIR:-/root}"
 CACHE_FILE="${NVIDIA_INSTALL_DIR_CONTAINER}/.cache"
+SIGN_DRIVER="${SIGN_DRIVER:-false}"
+VERIFY_INSTALLATION="${VERIFY_INSTALLATION:-true}"
 set +x
 
 RETCODE_SUCCESS=0
@@ -315,13 +317,14 @@ run_nvidia_installer() {
   info "Running Nvidia installer"
   pushd "${NVIDIA_INSTALL_DIR_CONTAINER}"
   sh "$(get_nvidia_installer_runfile)" \
+    --kernel-name="$(uname -r)" \
     --kernel-source-path="${KERNEL_SRC_DIR}" \
     --utility-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
     --opengl-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
     --no-install-compat32-libs \
     --log-file-name="${NVIDIA_INSTALL_DIR_CONTAINER}/nvidia-installer.log" \
     --silent \
-    --accept-license
+    --accept-license || true
   popd
 }
 
@@ -355,12 +358,45 @@ update_host_ld_cache() {
   ldconfig -r "${ROOT_MOUNT_DIR}"
 }
 
+sign_gpu_driver() {
+  info "Signing GPU driver kernel modules"
+  # Generate key pair to sign kernel modules.
+  local -r key_dir="$(mktemp -d)"
+  local -r priv_key="${key_dir}/signing_key.pem"
+  local -r publ_key="${key_dir}/signing_key.der"
+  openssl req -new -x509 -nodes -batch \
+    -days 36500 -sha256 -config "/x509.genkey" \
+    -newkey rsa -keyout "${priv_key}" \
+    -outform DER -out "${publ_key}"
+
+  sleep 36000
+  # Sign kernel modules.
+  driver_path="${NVIDIA_INSTALL_DIR_CONTAINER}/drivers"
+  for module in "${driver_path}"/*.ko; do
+    mv "${module}" "${module}.orig"
+    kmodsign sha256 \
+      "${priv_key}" "${publ_key}" \
+      "${module}.orig" "${module}"
+  done
+
+  # Destroy private key and save public key to ESP.
+  shred -zu "${priv_key}"
+  local -r esp_partition="/dev/sda12"
+  local -r mount_path="$(mktemp -d)"
+  local -r uefi_db_path="efi/Google/GSetup/db"
+  mount "${esp_partition}" "${mount_path}"
+  cp "${publ_key}" "${mount_path}/${uefi_db_path}/gpu_signing_key.der"
+  umount "${mount_path}"
+}
+
 main() {
   load_etc_os_release
-  configure_kernel_module_locking
+  #configure_kernel_module_locking
   if check_cached_version; then
-    configure_cached_installation
-    verify_nvidia_installation
+    if [ "${VERIFY_INSTALLATION}" = true]; then
+      configure_cached_installation
+      verify_nvidia_installation
+    fi
     info "Found cached version, NOT building the drivers."
   else
     info "Did not find cached version, building the drivers..."
@@ -370,8 +406,13 @@ main() {
     download_nvidia_installer
     configure_kernel_src
     run_nvidia_installer
+    if [ "${SIGN_DRIVER}" = true ]; then
+      sign_gpu_driver
+    fi
     update_cached_version
-    verify_nvidia_installation
+    if [ "${VERIFY_INSTALLATION}" = true]; then
+      verify_nvidia_installation
+    fi
     info "Finished installing the drivers."
   fi
   update_host_ld_cache
