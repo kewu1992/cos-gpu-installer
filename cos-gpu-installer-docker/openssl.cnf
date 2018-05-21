@@ -1,0 +1,14 @@
+# OpenSSL config file to use tpm2 engine.
+openssl_conf = openssl_def
+
+[openssl_def]
+engines = engine_section
+
+[engine_section]
+
+tpm2 = tpm2_section
+
+[tpm2_section]
+dynamic_path = /usr/lib/x86_64-linux-gnu/engines-1.1/libtpm2.so
+soft_load = 1
+init = 1

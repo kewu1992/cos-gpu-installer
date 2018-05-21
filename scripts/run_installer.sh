@@ -28,6 +28,7 @@ COS_NVIDIA_INSTALLER_CONTAINER="gcr.io/cos-cloud/cos-gpu-installer:latest"
 NVIDIA_INSTALL_DIR_HOST="/var/lib/nvidia"
 NVIDIA_INSTALL_DIR_CONTAINER="/usr/local/nvidia"
 ROOT_MOUNT_DIR="/root"
+SIGN_DRIVER="false"
 
 setup() {
   # Always use environment variable from metadata if provided.
@@ -45,14 +46,17 @@ setup() {
 
 main() {
   setup
+  docker-credential-gcr configure-docker
+  optional_args=()
+  [ "${SIGN_DRIVER}" = true ] && optional_args+=( '--device=/dev/tpm0' )
   docker run \
     --privileged \
     --net=host \
     --pid=host \
     --volume "${NVIDIA_INSTALL_DIR_HOST}":"${NVIDIA_INSTALL_DIR_CONTAINER}" \
-    --volume /dev:/dev \
     --volume "/":"${ROOT_MOUNT_DIR}" \
     --env-file "${_GPU_INSTALLER_ENV_PATH}" \
+    "${optional_args[@]}" \
     "${COS_NVIDIA_INSTALLER_CONTAINER}"
   # Verify installation.
   ${NVIDIA_INSTALL_DIR_HOST}/bin/nvidia-smi
