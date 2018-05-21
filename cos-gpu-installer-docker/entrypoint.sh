@@ -315,6 +315,7 @@ run_nvidia_installer() {
   info "Running Nvidia installer"
   pushd "${NVIDIA_INSTALL_DIR_CONTAINER}"
   sh "$(get_nvidia_installer_runfile)" \
+    --kernel-name="$(uname -r)" \
     --kernel-source-path="${KERNEL_SRC_DIR}" \
     --utility-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
     --opengl-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \

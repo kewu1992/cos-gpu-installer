@@ -45,6 +45,7 @@ setup() {
 
 main() {
   setup
+  docker-credential-gcr configure-docker
   docker run \
     --privileged \
     --net=host \
