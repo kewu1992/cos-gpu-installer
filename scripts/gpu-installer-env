@@ -3,8 +3,11 @@
 
 # NVIDIA_DRIVER_VERSION=390.46
 # NVIDIA_DRIVER_MD5SUM=8d0647bbc2305d1450d0fbacc274d8ae
-# COS_NVIDIA_INSTALLER_CONTAINER=gcr.io/cos-cloud/cos-gpu-installer:latest
+COS_NVIDIA_INSTALLER_CONTAINER=gcr.io/kewu-develop-project/cos-gpu-installer:latest
+HOME=/home/mikewu
 # NVIDIA_INSTALL_DIR_HOST=/var/lib/nvidia
 # NVIDIA_INSTALL_DIR_CONTAINER=/usr/local/nvidia
 # ROOT_MOUNT_DIR=/root
 # CUDA_TEST_CONTAINER=gcr.io/google_containers/cuda-vector-add:v0.1
+SIGN_DRIVER=true
+VERIFY_INSTALLATION=false
