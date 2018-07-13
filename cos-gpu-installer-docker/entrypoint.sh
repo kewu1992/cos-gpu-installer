@@ -233,30 +233,30 @@ configure_nvidia_installation_dirs() {
   # under /usr/bin. The following workaround ensures that
   # `nvidia-modprobe` is accessible outside the installer container
   # filesystem.
-  mkdir -p bin bin-workdir
-  mount -t overlay -o lowerdir=/usr/bin,upperdir=bin,workdir=bin-workdir none /usr/bin
+  #mkdir -p bin bin-workdir
+  #mount -t overlay -o lowerdir=/usr/bin,upperdir=bin,workdir=bin-workdir none /usr/bin
 
   # nvidia-installer does not provide an option to configure the
   # installation path of libraries such as libnvidia-ml.so. The following
   # workaround ensures that the libs are accessible from outside the
   # installer container filesystem.
   mkdir -p lib64 lib64-workdir
-  mkdir -p /usr/lib/x86_64-linux-gnu
-  mount -t overlay -o lowerdir=/usr/lib/x86_64-linux-gnu,upperdir=lib64,workdir=lib64-workdir none /usr/lib/x86_64-linux-gnu
+  #mkdir -p /usr/lib/x86_64-linux-gnu
+  #mount -t overlay -o lowerdir=/usr/lib/x86_64-linux-gnu,upperdir=lib64,workdir=lib64-workdir none /usr/lib/x86_64-linux-gnu
 
   # nvidia-installer does not provide an option to configure the
   # installation path of driver kernel modules such as nvidia.ko. The following
   # workaround ensures that the modules are accessible from outside the
   # installer container filesystem.
-  mkdir -p drivers drivers-workdir
-  mkdir -p /lib/modules/"$(uname -r)"/video
-  mount -t overlay -o lowerdir=/lib/modules/"$(uname -r)"/video,upperdir=drivers,workdir=drivers-workdir none /lib/modules/"$(uname -r)"/video
+  #mkdir -p drivers drivers-workdir
+  #mkdir -p /lib/modules/"$(uname -r)"/video
+  #mount -t overlay -o lowerdir=/lib/modules/"$(uname -r)"/video,upperdir=drivers,workdir=drivers-workdir none /lib/modules/"$(uname -r)"/video
 
   # Populate ld.so.conf to avoid warning messages in nvidia-installer logs.
   update_container_ld_cache
 
   # Install an exit handler to cleanup the overlayfs mount points.
-  trap "{ umount /lib/modules/\"$(uname -r)\"/video; umount /usr/lib/x86_64-linux-gnu ; umount /usr/bin; }" EXIT
+  #trap "{ umount /lib/modules/\"$(uname -r)\"/video; umount /usr/lib/x86_64-linux-gnu ; umount /usr/bin; }" EXIT
   popd
 }
 
@@ -321,15 +321,21 @@ download_nvidia_installer() {
 run_nvidia_installer() {
   info "Running Nvidia installer"
   pushd "${NVIDIA_INSTALL_DIR_CONTAINER}"
-  sh "$(get_nvidia_installer_runfile)" \
+  local -r dir_to_extract="/tmp/extract"
+  sh "$(get_nvidia_installer_runfile)" -x --target ${dir_to_extract}
+  "${dir_to_extract}/nvidia-installer" \
+    --kernel-name="$(uname -r)" \
     --kernel-source-path="${KERNEL_SRC_DIR}" \
     --utility-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
     --opengl-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
+    --compat32-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
+    --kernel-install-path="${NVIDIA_INSTALL_DIR_CONTAINER}/drivers" \
     --no-install-compat32-libs \
     --log-file-name="${NVIDIA_INSTALL_DIR_CONTAINER}/nvidia-installer.log" \
     --silent \
-    --accept-license
+    --accept-license || true
   popd
+  sleep 36000
 }
 
 configure_cached_installation() {
@@ -364,7 +370,7 @@ update_host_ld_cache() {
 
 main() {
   load_etc_os_release
-  configure_kernel_module_locking
+  #configure_kernel_module_locking
   if check_cached_version; then
     configure_cached_installation
     verify_nvidia_installation

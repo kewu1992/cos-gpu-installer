@@ -41,6 +41,9 @@ setup() {
   # Make NVIDIA_INSTALL_DIR_HOST executable by bind mounting it.
   mount --bind "${NVIDIA_INSTALL_DIR_HOST}" "${NVIDIA_INSTALL_DIR_HOST}"
   mount -o remount,exec "${NVIDIA_INSTALL_DIR_HOST}"
+
+  HOME=/home/mikewu
+  docker-credential-gcr configure-docker
 }
 
 main() {
@@ -52,6 +55,7 @@ main() {
     --volume "${NVIDIA_INSTALL_DIR_HOST}":"${NVIDIA_INSTALL_DIR_CONTAINER}" \
     --volume /dev:/dev \
     --volume "/":"${ROOT_MOUNT_DIR}" \
+    --volume "/lib/modules/$(uname -r)":"/lib/modules/$(uname -r)" \
     --env-file "${_GPU_INSTALLER_ENV_PATH}" \
     "${COS_NVIDIA_INSTALLER_CONTAINER}"
   # Verify installation.
