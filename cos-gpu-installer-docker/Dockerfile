@@ -14,12 +14,12 @@
 #
 # Dockerfile for the COS Module Builder container.
 
-FROM debian:9
+FROM ubuntu
 LABEL maintainer="cos-containers@google.com"
 
 # Install minimal tools needed to build kernel modules.
 RUN apt-get update -qq && \
-    apt-get install -y xz-utils python2.7-minimal kmod git make bc curl ccache libc6-dev pciutils gcc libelf-dev && \
+    apt-get install -y xz-utils python2.7-minimal kmod git make bc curl ccache libc6-dev pciutils gcc libelf-dev libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Download & install prebuild COS toolchain package, and prepare the environment for cross-compiling.
