@@ -283,6 +283,11 @@ minor_version() {
 }
 
 installer_default_download_url() {
+  # TESTING: temporarily point the installer to a private location
+  echo  "https://storage.googleapis.com/kewu_develop_bucket/NVIDIA-Linux-x86_64-410.104_72-11316-136-0.cos"
+  return
+  # END OF TESTING
+
   if (( $(major_version "${NVIDIA_DRIVER_VERSION}") < 390 )); then
     # Versions prior to 390 are downloaded from the upstream location.
     info "Downloading Nvidia installer from https://us.download.nvidia.com/... "
@@ -327,12 +332,19 @@ get_nvidia_installer_runfile() {
   echo ${NVIDIA_INSTALLER_RUNFILE}
 }
 
+get_access_token() {
+  local -r token="$(curl -s -f -m 10 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' -H 'Metadata-Flavor: Google')"
+  echo "$(echo ${token} | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["access_token"]')"
+}
+
 download_nvidia_installer() {
   info "Downloading Nvidia installer ... "
   pushd "${NVIDIA_INSTALL_DIR_CONTAINER}"
   local -r nvidia_driver_download_url="$(get_nvidia_installer_url)"
   info "Downloading from ${nvidia_driver_download_url}"
-  curl -L -sS "${nvidia_driver_download_url}" -o "$(get_nvidia_installer_runfile)"
+  curl -L -sS "${nvidia_driver_download_url}" \
+    -H "Authorization":"Bearer $(get_access_token)" \
+    -o "$(get_nvidia_installer_runfile)"
   if [ ! -z "${NVIDIA_DRIVER_MD5SUM}" ]; then
     echo "${NVIDIA_DRIVER_MD5SUM}" "$(get_nvidia_installer_runfile)" | md5sum --check
   fi
@@ -343,7 +355,6 @@ run_nvidia_installer() {
   info "Running Nvidia installer"
   pushd "${NVIDIA_INSTALL_DIR_CONTAINER}"
   sh "$(get_nvidia_installer_runfile)" \
-    --kernel-source-path="${KERNEL_SRC_DIR}" \
     --utility-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
     --opengl-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
     --no-install-compat32-libs \
@@ -393,11 +404,9 @@ main() {
     info "Found cached version, NOT building the drivers."
   else
     info "Did not find cached version, building the drivers..."
-    download_kernel_src
     install_cross_toolchain_pkg
     configure_nvidia_installation_dirs
     download_nvidia_installer
-    configure_kernel_src
     run_nvidia_installer
     update_cached_version
     verify_nvidia_installation
