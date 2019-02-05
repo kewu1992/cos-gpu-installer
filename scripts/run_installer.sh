@@ -41,6 +41,8 @@ setup() {
   # Make NVIDIA_INSTALL_DIR_HOST executable by bind mounting it.
   mount --bind "${NVIDIA_INSTALL_DIR_HOST}" "${NVIDIA_INSTALL_DIR_HOST}"
   mount -o remount,exec "${NVIDIA_INSTALL_DIR_HOST}"
+
+  docker-credential-gcr configure-docker
 }
 
 main() {
