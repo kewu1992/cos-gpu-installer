@@ -409,8 +409,10 @@ configure_nvidia_installation_dirs() {
 run_nvidia_installer() {
   info "Running Nvidia installer"
   pushd "${NVIDIA_INSTALL_DIR_CONTAINER}"
+  local -r dir_to_extract="/tmp/extract"
+  sh "${INSTALLER_FILE}" -x --target "${dir_to_extract}"
   if is_precompiled_installer; then
-    sh "${INSTALLER_FILE}" \
+    "${dir_to_extract}/nvidia-installer" \
       --utility-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
       --opengl-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
       --no-install-compat32-libs \
@@ -418,7 +420,7 @@ run_nvidia_installer() {
       --silent \
       --accept-license
   else
-    sh "${INSTALLER_FILE}" \
+    "${dir_to_extract}/nvidia-installer" \
       --kernel-source-path="${KERNEL_SRC_DIR}" \
       --utility-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
       --opengl-prefix="${NVIDIA_INSTALL_DIR_CONTAINER}" \
