@@ -53,13 +53,13 @@ default_installer_download_url() {
 get_gpu_installer_url() {
   if [[ -z "${GPU_INSTALLER_DOWNLOAD_URL}" ]]; then
     # First try to find the precompiled gpu installer.
-    local -r url="$(precompiled_installer_download_url "$@")"
-    if curl -s -I "${url}"  2>&1 | grep -q 'HTTP/2 200'; then
-      GPU_INSTALLER_DOWNLOAD_URL="${url}"
-    else
-      # Fallback to default gpu installer.
-      GPU_INSTALLER_DOWNLOAD_URL="$(default_installer_download_url "$@")"
-    fi
+    #local -r url="$(precompiled_installer_download_url "$@")"
+    #if curl -s -I "${url}"  2>&1 | grep -q 'HTTP/2 200'; then
+    #  GPU_INSTALLER_DOWNLOAD_URL="${url}"
+    #else
+    # Fallback to default gpu installer.
+    GPU_INSTALLER_DOWNLOAD_URL="$(default_installer_download_url "$@")"
+    #fi
   fi
   echo "${GPU_INSTALLER_DOWNLOAD_URL}"
 }
