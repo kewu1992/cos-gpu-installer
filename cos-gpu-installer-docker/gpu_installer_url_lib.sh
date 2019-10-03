@@ -14,9 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-source driver_signature_lib.sh
-
+REQUIRE_PRECOMPILED_DRIVER_SIGNATURE="${REQUIRE_PRECOMPILED_DRIVER_SIGNATURE:-true}"
 GPU_INSTALLER_DOWNLOAD_URL=""
 
 get_major_version() {
@@ -73,9 +71,14 @@ get_gpu_installer_url() {
     local -r url="$(precompiled_installer_download_url "$@")"
     # Only download pre-compiled driver if both installer and the corresponding
     # signature exist.
-    if curl -s -I "${url}"  2>&1 | grep -q 'HTTP/2 200' && \
-      has_precompiled_driver_signature; then
+    if curl -s -I "${url}"  2>&1 | grep -q 'HTTP/2 200'; then
       GPU_INSTALLER_DOWNLOAD_URL="${url}"
+      if [[ "${REQUIRE_PRECOMPILED_DRIVER_SIGNATURE}" == "true" ]] && \
+        ! has_precompiled_driver_signature; then
+        # Don't have required siganture of precompiled gpu driver, fallback to
+        # default gpu installer.
+        GPU_INSTALLER_DOWNLOAD_URL="$(default_installer_download_url "$@")"
+      fi
     else
       # Fallback to default gpu installer.
       GPU_INSTALLER_DOWNLOAD_URL="$(default_installer_download_url "$@")"
